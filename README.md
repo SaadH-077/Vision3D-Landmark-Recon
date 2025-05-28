@@ -1,97 +1,144 @@
 # 🏛️ 3D Landmark Reconstruction and Mobile Visualization
-*A Computer Vision Project using SIFT, Triangulation, and Mesh Generation*
+*A Computer Vision Project using ORB, Fundamental Matrix Estimation, Triangulation & Mobile Deployment*
 
-This repository presents a complete pipeline for reconstructing 3D landmarks from 2D images using classical computer vision techniques. Developed as part of the **CS436: Computer Vision** course at LUMS, this project culminates in the mobile deployment of the reconstructed 3D model using **FlutterCube**.
+This repository presents an end-to-end pipeline for reconstructing a 3D model of the **Brandenburg Gate** from 2D images using classical computer vision techniques. The model is later deployed in a mobile interface using **FlutterCube** for real-time 3D interaction.
 
 > 🧠 **Course**: CS436 - Computer Vision  
-> 🗓️ **Semester**: Spring 2025  
+> 🗓️ **Semester**: Fall 2024  
 > 🏫 **Institution**: LUMS  
 > 👨‍💻 Contributors: Muhammad Saad Haroon, Zammad Bin Ziyad Khan
 
 ---
 
 ## 🧠 Project Overview
+This project focuses on multi-view 3D reconstruction of a real-world landmark using feature-based methods, geometric modeling, and sparse point triangulation. Our final output is a usable 3D model that is deployed and visualized using FlutterCube.
 
-The objective is to reconstruct the **Brandenburg Gate** from a set of images using:
-- Feature Detection (SIFT)
-- Fundamental/Epipolar Geometry
-- Camera Pose Estimation
-- Linear Triangulation
-- Poisson Mesh Generation
-- Deployment via FlutterCube (interactive 3D rendering)
+---
 
-![Pipeline](images/pipeline.png "Project Pipeline")
+## 📁 Directory Structure
+```
+3D-Landmark-Reconstruction-CV/
+│
+├── notebooks/                     # Jupyter notebooks for feature matching and triangulation
+│   ├── G02_Deliverable1.ipynb
+│   └── G02_Deliverable2.ipynb
+│
+├── app_code/                     # FlutterCube mobile deployment code
+│
+├── images/                       # Visual outputs from preprocessing and feature matching
+│   ├── Preprocessed_Images.png
+│   ├── feature_detection.png
+│   └── feature_matching.png
+│
+├── models/                       # 3D reconstructed model files
+│   └── landmark_model.glb
+│
+├── dataset/                      # Filtered input images
+│   └── SelectedImages/
+│
+├── report/                       # Final write-up
+│   └── G02_Report_Final.pdf
+│
+├── README.md                     # This documentation file
+```
 
 ---
 
 ## 🎓 Methodology
 
 ### 1. 📸 Dataset Preparation
-- Dataset: 1400 raw images of the Brandenburg Gate
-- Manual filtering to retain 500 relevant views
-- Preprocessing: grayscale conversion, histogram equalization
+- ~1400 raw images were collected of the **Brandenburg Gate**.
+- Manually filtered to 500 high-quality front and angular views.
+- Images were then:
+  - Resized
+  - Converted to grayscale
+  - Histogram equalized for contrast improvement
 
-### 2. 🔍 Feature Matching
-- SIFT + Brute Force Matcher
-- Lowe's Ratio Test
-- RANSAC for outlier rejection
-
-### 3. 📷 Camera Estimation
-- Extract intrinsics from COLMAP `cameras.bin`
-- Compute essential matrix & decompose to poses
-- Use `cv2.recoverPose` for rotation & translation
-
-### 4. 🛠️ Triangulation & 3D Points
-- Projection matrices for each camera
-- 3D point generation via `cv2.triangulatePoints`
-
-### 5. 🧊 Mesh Generation
-- Convert to Open3D format
-- Compute normals, run Poisson reconstruction
-- Output `.obj` model
-
-### 6. 📱 Mobile Deployment
-- Use [`flutter_cube`](https://pub.dev/packages/flutter_cube) to render `.obj`
-- Implement camera orbit, zoom, and rotate
-- Tested on POCO X3 GT (no ARCore)
+![Preprocessed Images](images/Preprocessed_Images.png "Preprocessed Images")
 
 ---
 
-## 🎨 Results
+### 2. 🔍 Feature Detection with ORB
+ORB was chosen for its computational efficiency and rotation invariance.
+- Detected keypoints across pairs of images
+- Used `cv2.ORB_create()` followed by Brute-Force Hamming Matcher
+- Filtered matches using Lowe’s Ratio Test + RANSAC for stability
 
-| Module               | Output Quality         |
-|----------------------|------------------------|
-| Feature Matching     | ✅ 80-100 matches    |
-| 3D Triangulation     | ✅ Sparse cloud     |
-| Mesh Reconstruction  | ✅ Usable mesh      |
-| Mobile App           | ✅ Working UI      |
-
-![Matches](images/2d_matches.png "Matched Keypoints")  
-![Mesh](images/3d_mesh_output.png "3D Mesh Output")
+![Feature Detection](images/feature_detection.png "ORB Feature Detection")
 
 ---
 
-## 🚨 Challenges & Fixes
-- No ARCore device available → fallback to FlutterCube
-- Sparse regions in mesh → consider SuperGlue + global match
-- Model realism limited → use texture projection in future
+### 3. 🔗 Feature Matching
+- Best matches across consecutive views visualized
+- Ensured correspondences for epipolar geometry
+
+![Feature Matching](images/feature_matching.png "Best Feature Matches")
 
 ---
 
-## 🚀 Future Work
-- Switch to dense stereo or MVS for detail
-- Use ARCore/Sceneform for real AR
-- Add SSIM metrics for quality eval
-- Texture mapping
+### 4. 📷 Camera Pose Estimation
+- Intrinsic parameters extracted from COLMAP’s `cameras.bin`
+- Fundamental and essential matrix computed
+- Pose recovered using `cv2.recoverPose()`
 
 ---
 
-## 📖 Citation
+### 5. 📐 Linear Triangulation
+- Projection matrices created from pose and intrinsics
+- 3D points triangulated using `cv2.triangulatePoints`
+- Points converted to Euclidean by dividing by homogeneous coordinate
 
-If you use this work or find it helpful:
+---
 
+### 6. 🧊 Mesh Generation
+- Triangulated points imported to Open3D
+- Normals estimated and smoothed
+- Poisson mesh reconstruction applied
+- Output exported as `.glb` (also supported: `.obj`)
+
+---
+
+### 7. 📱 Mobile Deployment
+- Final mesh rendered in a Flutter app using [`flutter_cube`](https://pub.dev/packages/flutter_cube)
+- Device used: POCO X3 GT (non-ARCore supported)
+- Interactive: rotate, zoom, and inspect 3D model
+
+---
+
+## ✅ Results Summary
+
+| Step                  | Outcome                             |
+|-----------------------|-------------------------------------|
+| Image Preprocessing   | Contrast-enhanced grayscale views  |
+| ORB Detection         | Reliable features per image         |
+| Matching              | 80–100 strong matches per pair      |
+| Triangulation         | Sparse 3D cloud preserved structure |
+| Mesh Reconstruction   | Usable mesh from sparse points      |
+| Mobile App            | Model viewable in 3D, interactively |
+
+---
+
+## 🚧 Challenges Encountered
+- Lack of ARCore support → switched to FlutterCube
+- Sparse image overlap → limited dense reconstruction
+- Some mesh artifacts → could benefit from dense stereo or MVS
+
+---
+
+## 🛠 Future Work
+- Replace ORB with SuperPoint + SuperGlue for more robust features
+- Integrate MVS for dense reconstruction
+- Deploy on ARCore-enabled phones for live projection
+- Add texture mapping from source images
+- Evaluate point cloud fidelity using SSIM or IoU
+
+---
+
+## 📄 Citation
+If you reference this project or build upon it:
 ```bibtex
 @project{3DLandmarkCV2025,
+  author = {Muhammad Saad Haroon and Zammad Bin Ziyad Khan},
   title = {3D Landmark Reconstruction and Mobile Visualization},
   note = {Developed as part of CS436: Computer Vision course at LUMS, Spring 2025.}
 }
@@ -99,4 +146,5 @@ If you use this work or find it helpful:
 
 ---
 
-> “Digitally preserving landmarks is not just about geometry — it’s about bringing heritage to life.”
+
+> “To reconstruct a monument is to capture time, geometry, and memory—one feature at a time.”
